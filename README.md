@@ -25,9 +25,9 @@ Full sequence: [docs/DEPLOY.md](docs/DEPLOY.md). Post-deploy UI steps: [docs/OPE
 
 ```bash
 cd ~/projects/memory-engine
-git init
 ./scripts/init-git-personal.sh
-# Then: git add / commit / remote / push
+git commit --amend --reset-author --no-edit   # fix first commit author after setting user.name/email
+# Add remote (personal SSH host alias), then push
 ```
 
 Never commit `.env`. Use `.env.example` only for key names.
