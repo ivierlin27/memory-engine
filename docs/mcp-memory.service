@@ -1,0 +1,14 @@
+[Unit]
+Description=MCP Memory Service
+After=network.target
+
+[Service]
+Environment=MCP_STREAMABLE_HTTP_MODE=1
+Environment=MCP_SSE_HOST=0.0.0.0
+Environment=MCP_SSE_PORT=8765
+Environment=MCP_OAUTH_ENABLED=true
+ExecStart=/usr/bin/python3 -m mcp_memory_service.server
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

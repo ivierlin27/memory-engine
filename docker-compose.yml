@@ -1,0 +1,150 @@
+# Pin versions after first successful deploy; bump deliberately.
+# See README.md for image update policy.
+
+networks:
+  memory-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  n8n_data:
+  planka_data:
+  khoj_data:
+
+services:
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: memory-postgres
+    restart: unless-stopped
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - max_connections=100
+    environment:
+      POSTGRES_USER: memory
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: memory
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks: [memory-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U memory"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:v1.17.1
+    container_name: memory-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks: [memory-net]
+
+  khoj:
+    image: ghcr.io/khoj-ai/khoj:latest
+    container_name: memory-khoj
+    restart: unless-stopped
+    ports:
+      - "42110:42110"
+    environment:
+      KHOJ_ADMIN_EMAIL: ${ADMIN_EMAIL}
+      KHOJ_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      KHOJ_DEBUG: "False"
+      DATABASE_URL: postgresql://memory:${POSTGRES_PASSWORD}@postgres:5432/memory
+      OPENAI_API_KEY: lm-studio
+      OPENAI_API_BASE: http://${LM_STUDIO_HOST}:${LM_STUDIO_PORT}/v1
+    volumes:
+      - ./obsidian_vault:/app/vault:ro
+      - khoj_data:/app/.khoj
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [memory-net]
+
+  mem0:
+    image: mem0ai/mem0:latest
+    container_name: memory-mem0
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql://memory:${POSTGRES_PASSWORD}@postgres:5432/memory
+      VECTOR_STORE_PROVIDER: qdrant
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: "6333"
+      LLM_PROVIDER: openai
+      OPENAI_API_KEY: lm-studio
+      OPENAI_BASE_URL: http://${LM_STUDIO_HOST}:${LM_STUDIO_PORT}/v1
+      LLM_MODEL: ${LLM_MODEL}
+      EMBEDDING_PROVIDER: openai
+      EMBEDDING_BASE_URL: http://${LM_STUDIO_HOST}:${LM_STUDIO_EMBED_PORT}/v1
+      EMBEDDING_MODEL: ${EMBED_MODEL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    networks: [memory-net]
+
+  n8n:
+    image: n8nio/n8n:2.17.0
+    container_name: memory-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://n8n.${DOMAIN}
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_DATABASE: memory
+      DB_POSTGRESDB_USER: memory
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: last
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${ADMIN_EMAIL}
+      N8N_BASIC_AUTH_PASSWORD: ${ADMIN_PASSWORD}
+      SEARXNG_URL: ${SEARXNG_URL}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./inbox:/inbox
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [memory-net]
+
+  planka:
+    image: ghcr.io/plankanban/planka:latest
+    container_name: memory-planka
+    restart: unless-stopped
+    ports:
+      - "3000:1337"
+    environment:
+      DATABASE_URL: postgresql://memory:${POSTGRES_PASSWORD}@postgres:5432/memory
+      SECRET_KEY: ${PLANKA_SECRET_KEY}
+      BASE_URL: https://planka.${DOMAIN}
+      DEFAULT_ADMIN_EMAIL: ${ADMIN_EMAIL}
+      DEFAULT_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      DEFAULT_ADMIN_NAME: Admin
+      DEFAULT_ADMIN_USERNAME: admin
+    volumes:
+      - planka_data:/app/public/user-avatars
+      - planka_data:/app/public/project-background-images
+      - planka_data:/app/private/attachments
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [memory-net]

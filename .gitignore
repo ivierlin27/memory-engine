@@ -1,0 +1,10 @@
+.env
+lxc.env
+scripts/lxc.env
+backups/
+obsidian_vault/**
+!obsidian_vault/.gitkeep
+inbox/**
+!inbox/.gitkeep
+.DS_Store
+*.log

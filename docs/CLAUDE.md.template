@@ -1,0 +1,51 @@
+# Personal Memory System
+
+## Infrastructure
+
+- Memory engine: memory-engine.dev-path.org (Proxmox LXC)
+- LLM server: lmstudio.dev-path.org:1234 (Alienware, RTX 3090)
+- Kanban: https://planka.dev-path.org
+- Knowledge base: https://khoj.dev-path.org
+- Workflows: https://n8n.dev-path.org
+- Search: https://search.dev-path.org (SearXNG)
+
+## MCP memory tools
+
+At session start: `search_memories` with the first message topic.
+Surface related projects, past decisions, prior context found.
+
+During session: `add_memory` for architecture decisions, debugging paths,
+tool choices, project status changes, preferences learned.
+
+At session end: produce SESSION_SUMMARY block and POST to webhook:
+
+SESSION_SUMMARY_START
+date: [ISO date]
+source: claude_code
+projects_touched: [list]
+new_concepts: [list]
+decisions_made: [list]
+open_questions: [list]
+suggested_inbox_items: [list of URLs/tools/ideas worth capturing]
+rejected_items: []
+raw_summary: |
+  [2-5 sentence summary]
+SESSION_SUMMARY_END
+
+After producing the block, run:
+
+```bash
+curl -X POST https://n8n.dev-path.org/webhook/session-end \
+  -H "Content-Type: application/json" \
+  -d '{"summary_block": "[block content]", "source": "claude_code"}'
+```
+
+## Cost routing
+
+Default: use local LM Studio for everything.
+Escalate to cloud only for deep multi-document synthesis or tasks needing higher reasoning quality.
+Say "escalating to cloud" when doing so.
+
+## Active projects
+
+Check planka.dev-path.org or `search_memories` for current status.
