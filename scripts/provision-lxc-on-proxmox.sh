@@ -7,6 +7,20 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 source "${SCRIPT_DIR}/lxc.env"
 
+if ! pvesm path "${UBUNTU_TEMPLATE}" >/dev/null 2>&1; then
+  echo "ERROR: Template not found on this node: ${UBUNTU_TEMPLATE}"
+  echo
+  echo "Fix: download a Ubuntu 24.04 template, then set UBUNTU_TEMPLATE in scripts/lxc.env to match exactly."
+  echo "  pveam update"
+  echo "  pveam available | grep -i ubuntu-24"
+  echo "  pveam download local <filename-from-available-column>   # often: local is your template storage"
+  echo "  pveam list local   # confirm the .tar.zst appears"
+  echo
+  echo "If templates live on another storage (see Datacenter → Storage), use:"
+  echo "  export UBUNTU_TEMPLATE='OTHERSTORAGE:vztmpl/ubuntu-24.04-standard_....tar.zst'"
+  exit 1
+fi
+
 echo "Creating CT ${CT_ID} (${CT_HOSTNAME})..."
 
 pct create "${CT_ID}" "${UBUNTU_TEMPLATE}" \
