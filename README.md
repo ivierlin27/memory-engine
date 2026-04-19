@@ -23,10 +23,12 @@ Full sequence: [docs/DEPLOY.md](docs/DEPLOY.md). Post-deploy UI steps: [docs/OPE
 
 ## Git (personal GitHub)
 
+Repo is already initialized on disk. Set your **personal** identity for this repo only, then fix the last commit author if needed:
+
 ```bash
 cd ~/projects/memory-engine
 ./scripts/init-git-personal.sh
-git commit --amend --reset-author --no-edit   # fix first commit author after setting user.name/email
+git commit --amend --reset-author --no-edit
 # Add remote (personal SSH host alias), then push
 ```
 
