@@ -11,6 +11,7 @@ volumes:
   n8n_data:
   planka_data:
   khoj_data:
+  mem0_history:
 
 services:
 
@@ -69,29 +70,30 @@ services:
         condition: service_healthy
     networks: [memory-net]
 
+  # Official OSS REST API (Docker Hub: mem0/mem0-api-server). Listens on 8000 inside the container.
+  # Host port 8080 preserved for docs/NPM. Inter-container URL: http://mem0:8000
+  # Uses pgvector in Postgres (not Qdrant). Default models in the image target OpenAI;
+  # for LM Studio, set OPENAI_BASE_URL and use POST /configure or a real OpenAI key — see README.
   mem0:
-    image: mem0ai/mem0:latest
+    image: mem0/mem0-api-server:latest
     container_name: memory-mem0
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8080:8000"
     environment:
-      DATABASE_URL: postgresql://memory:${POSTGRES_PASSWORD}@postgres:5432/memory
-      VECTOR_STORE_PROVIDER: qdrant
-      QDRANT_HOST: qdrant
-      QDRANT_PORT: "6333"
-      LLM_PROVIDER: openai
-      OPENAI_API_KEY: lm-studio
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: memory
+      POSTGRES_USER: memory
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_COLLECTION_NAME: mem0_memories
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-lm-studio}
       OPENAI_BASE_URL: http://${LM_STUDIO_HOST}:${LM_STUDIO_PORT}/v1
-      LLM_MODEL: ${LLM_MODEL}
-      EMBEDDING_PROVIDER: openai
-      EMBEDDING_BASE_URL: http://${LM_STUDIO_HOST}:${LM_STUDIO_EMBED_PORT}/v1
-      EMBEDDING_MODEL: ${EMBED_MODEL}
+    volumes:
+      - mem0_history:/app/history
     depends_on:
       postgres:
         condition: service_healthy
-      qdrant:
-        condition: service_started
     networks: [memory-net]
 
   n8n:
