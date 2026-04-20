@@ -79,6 +79,8 @@ services:
       args:
         MEM0_GIT_REF: "${MEM0_GIT_REF:-main}"
     image: memory-mem0-api:local
+    # Do not try to pull this from a registry (it is build-only on this host).
+    pull_policy: never
     container_name: memory-mem0
     restart: unless-stopped
     ports:
