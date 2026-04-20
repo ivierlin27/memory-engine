@@ -118,8 +118,12 @@ services:
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
       N8N_HOST: 0.0.0.0
       N8N_PORT: "5678"
+      # TLS terminates at Nginx Proxy Manager; n8n itself serves HTTP on 5678.
+      # See docs/NPM-N8N.md — do not browse https://<LXC-IP>:5678 (TLS is not enabled there).
       N8N_PROTOCOL: https
       WEBHOOK_URL: https://n8n.${DOMAIN}
+      N8N_EDITOR_BASE_URL: https://n8n.${DOMAIN}
+      N8N_PROXY_HOPS: "1"
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
       DB_POSTGRESDB_PORT: "5432"
