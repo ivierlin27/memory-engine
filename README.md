@@ -22,7 +22,7 @@ Full sequence: [docs/DEPLOY.md](docs/DEPLOY.md). Post-deploy UI steps: [docs/OPE
 | Postgres  | `pgvector/pgvector:pg16` |
 | Qdrant    | `qdrant/qdrant:v1.17.1` |
 | n8n       | `n8nio/n8n:2.17.0`     |
-| Mem0      | `mem0/mem0-api-server:latest` (pin digest after first pull) |
+| Mem0      | `memory-mem0-api:local` (built from `docker/mem0-api-server/`) |
 | Khoj/Planka | `latest` (pin to digest after first `docker compose pull`) |
 
 ## Git (personal GitHub)
