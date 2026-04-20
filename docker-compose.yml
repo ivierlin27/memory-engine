@@ -132,6 +132,9 @@ services:
       N8N_BASIC_AUTH_USER: ${ADMIN_EMAIL}
       N8N_BASIC_AUTH_PASSWORD: ${ADMIN_PASSWORD}
       SEARXNG_URL: ${SEARXNG_URL}
+      # Self-hosted: avoid Rudder/telemetry connection errors when outbound 443 to n8n is blocked
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
     volumes:
       - n8n_data:/home/node/.n8n
       - ./inbox:/inbox
