@@ -31,6 +31,7 @@ services:
       POSTGRES_DB: memory
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres/00-create-databases.sh:/docker-entrypoint-initdb.d/00-create-databases.sh:ro
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks: [memory-net]
     healthcheck:
@@ -55,13 +56,19 @@ services:
     restart: unless-stopped
     ports:
       - "42110:42110"
+    command: ["--host=0.0.0.0", "--port=42110", "-vv", "--non-interactive"]
     environment:
       KHOJ_ADMIN_EMAIL: ${ADMIN_EMAIL}
       KHOJ_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       KHOJ_DEBUG: "False"
-      DATABASE_URL: postgresql://memory:${POSTGRES_PASSWORD}@postgres:5432/memory
+      KHOJ_DJANGO_SECRET_KEY: ${KHOJ_DJANGO_SECRET_KEY}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: memory
+      POSTGRES_USER: memory
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       OPENAI_API_KEY: lm-studio
-      OPENAI_API_BASE: http://${LM_STUDIO_HOST}:${LM_STUDIO_PORT}/v1
+      OPENAI_BASE_URL: http://${LM_STUDIO_HOST}:${LM_STUDIO_PORT}/v1
     volumes:
       - ./obsidian_vault:/app/vault:ro
       - khoj_data:/app/.khoj
@@ -116,7 +123,7 @@ services:
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
       DB_POSTGRESDB_PORT: "5432"
-      DB_POSTGRESDB_DATABASE: memory
+      DB_POSTGRESDB_DATABASE: n8n
       DB_POSTGRESDB_USER: memory
       DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
       EXECUTIONS_DATA_SAVE_ON_ERROR: all
@@ -140,7 +147,7 @@ services:
     ports:
       - "3000:1337"
     environment:
-      DATABASE_URL: postgresql://memory:${POSTGRES_PASSWORD}@postgres:5432/memory
+      DATABASE_URL: postgresql://memory:${POSTGRES_PASSWORD}@postgres:5432/planka
       SECRET_KEY: ${PLANKA_SECRET_KEY}
       BASE_URL: https://planka.${DOMAIN}
       DEFAULT_ADMIN_EMAIL: ${ADMIN_EMAIL}

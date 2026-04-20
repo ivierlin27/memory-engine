@@ -14,7 +14,7 @@ Self-hosted AI memory stack (PostgreSQL + pgvector, Qdrant, Khoj, Mem0, n8n, Pla
 
 **Mem0 API:** Built from [mem0ai/mem0 `server/`](https://github.com/mem0ai/mem0/tree/main/server) via [docker/mem0-api-server/Dockerfile](docker/mem0-api-server/Dockerfile) because the published `mem0/mem0-api-server` image is **arm64-only** (no `linux/amd64` on Proxmox x86). First `docker compose up` will **build** the image (needs internet to `git clone` and `pip install`). API is **8000** in the container, **8080** on the host. n8n should call `http://mem0:8000`. The server defaults to OpenAI model IDs; for LM Studio use `OPENAI_BASE_URL` and/or `POST /configure` — see [Mem0 server](https://github.com/mem0ai/mem0/tree/main/server).
 
-Full sequence: [docs/DEPLOY.md](docs/DEPLOY.md). Post-deploy UI steps: [docs/OPERATIONS.md](docs/OPERATIONS.md).
+Full sequence: [docs/DEPLOY.md](docs/DEPLOY.md). Post-deploy UI steps: [docs/OPERATIONS.md](docs/OPERATIONS.md). If n8n/Planka or Khoj DB errors: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ## Image pins
 
