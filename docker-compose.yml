@@ -70,12 +70,15 @@ services:
         condition: service_healthy
     networks: [memory-net]
 
-  # Official OSS REST API (Docker Hub: mem0/mem0-api-server). Listens on 8000 inside the container.
-  # Host port 8080 preserved for docs/NPM. Inter-container URL: http://mem0:8000
-  # Uses pgvector in Postgres (not Qdrant). Default models in the image target OpenAI;
-  # for LM Studio, set OPENAI_BASE_URL and use POST /configure or a real OpenAI key — see README.
+  # Mem0 REST API — built locally: Docker Hub image is arm64-only (no linux/amd64 manifest).
+  # docker/mem0-api-server/Dockerfile clones github.com/mem0ai/mem0 and builds server/.
   mem0:
-    image: mem0/mem0-api-server:latest
+    build:
+      context: ./docker/mem0-api-server
+      dockerfile: Dockerfile
+      args:
+        MEM0_GIT_REF: "${MEM0_GIT_REF:-main}"
+    image: memory-mem0-api:local
     container_name: memory-mem0
     restart: unless-stopped
     ports:
