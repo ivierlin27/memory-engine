@@ -124,6 +124,8 @@ services:
       WEBHOOK_URL: https://n8n.${DOMAIN}
       N8N_EDITOR_BASE_URL: https://n8n.${DOMAIN}
       N8N_PROXY_HOPS: "1"
+      # Default true. Set N8N_SECURE_COOKIE=false in .env only while debugging http://<IP>:5678 or Safari quirks.
+      N8N_SECURE_COOKIE: ${N8N_SECURE_COOKIE:-true}
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
       DB_POSTGRESDB_PORT: "5432"

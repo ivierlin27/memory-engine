@@ -35,4 +35,41 @@ Restart n8n after changing env: `docker compose up -d n8n`.
 
 ## HTTP 421
 
-Often **HTTP/2 + TLS** + multiple vhosts on the same NPM instance. Things to try: disable HTTP/2 for this proxy host; confirm **DNS** for `n8n.dev-path.org` points to the **NPM** host IP; confirm the SSL certificate includes **`n8n.dev-path.org`**.
+**421 Misdirected Request** usually comes from the **proxy + TLS + HTTP/2** stack, not from n8n.
+
+Work through these on **Nginx Proxy Manager**:
+
+1. **SSL tab (required for `https://n8n...`)**  
+   - Turn on **SSL** with a certificate that covers **`n8n.dev-path.org`** (Let’s Encrypt).  
+   - Enable **Force SSL** / **HTTP → HTTPS** if you want.  
+   - Without a cert on **this** Proxy Host, HTTPS may hit the wrong default server and produce odd errors (including 421).
+
+2. **HTTP/2**  
+   Some setups fix 421 by **disabling HTTP/2** for this host only (depends on NPM version — look for an HTTP/2 toggle on the SSL tab or global NPM settings).  
+   Alternatively add **Custom Nginx Configuration** (Advanced) if your NPM build supports it — avoid fighting the generated `listen` unless you know the template.
+
+3. **DNS**  
+   `n8n.dev-path.org` must resolve to the **NPM machine’s LAN IP**, not necessarily the n8n LXC IP.
+
+4. **Clear browser state**  
+   Try a **private window** or another browser after changing SSL — cached HTTP/2 / HSTS can confuse diagnosis.
+
+5. **Sanity check from Mac**
+
+```bash
+curl -vk --resolve n8n.dev-path.org:443:<NPM_IP> https://n8n.dev-path.org/
+```
+
+Replace `<NPM_IP>` with the host that runs NPM. You should see **HTTP/2 or HTTP/1.1** and a valid cert for `n8n.dev-path.org`.
+
+---
+
+## Secure cookie warning on `http://192.168.1.69:5678`
+
+That is **expected** while **`N8N_PROTOCOL=https`** (and cookies are “secure”). You are opening a **plain HTTP** URL.
+
+**Recommended:** finish setup using **`https://n8n.dev-path.org`** only (after NPM SSL is correct).
+
+**Temporary LAN debugging:** set in `.env`  
+`N8N_SECURE_COOKIE=false`  
+then `docker compose up -d n8n`. Do **not** leave this off on anything internet-exposed.
