@@ -56,7 +56,7 @@ services:
     restart: unless-stopped
     ports:
       - "42110:42110"
-    command: ["--host=0.0.0.0", "--port=42110", "-vv", "--non-interactive"]
+    command: ["--host=0.0.0.0", "--port=42110", "-vv", "--non-interactive", "--anonymous-mode"]
     environment:
       KHOJ_ADMIN_EMAIL: ${ADMIN_EMAIL}
       KHOJ_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
