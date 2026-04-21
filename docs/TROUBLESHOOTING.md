@@ -37,6 +37,16 @@ Use `docker volume ls | grep n8n` to get the exact volume name. Removing `n8n_da
 
 Khoj expects **`POSTGRES_HOST`** / **`POSTGRES_DB`** etc., not only `DATABASE_URL`. See current `docker-compose.yml` `khoj` service.
 
+## Khoj / sync script: `Name or service not known` or URL contains `LXC_IP=`
+
+`OPENAI_BASE_URL` is built from **`LM_STUDIO_HOST`** in `.env`. If you set `LM_STUDIO_HOST=LXC_IP=192.168.1.45` (copy-paste from docs), the URL becomes invalid. Use **only** the address:
+
+```bash
+LM_STUDIO_HOST=192.168.1.45
+```
+
+Then `docker compose up -d khoj` and re-run `./scripts/sync-khoj-chat-models.sh`.
+
 ## Mem0 ImportError psycopg
 
 Rebuild the Mem0 image after Dockerfile changes:

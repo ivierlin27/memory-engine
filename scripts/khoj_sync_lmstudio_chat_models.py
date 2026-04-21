@@ -37,6 +37,29 @@ import ssl
 import sys
 import urllib.error
 import urllib.request
+from urllib.parse import urlparse
+
+
+def _validate_openai_base_url(base_url: str) -> None:
+    """Catch common .env mistakes (e.g. LM_STUDIO_HOST=LXC_IP=192.168...) before HTTP."""
+    try:
+        u = urlparse(base_url.strip())
+    except ValueError as e:
+        raise RuntimeError(f"Invalid OPENAI_BASE_URL: {base_url!r}") from e
+    netloc = u.netloc or ""
+    if "=" in netloc:
+        raise RuntimeError(
+            "OPENAI_BASE_URL hostname is malformed (contains '=').\n"
+            "  Often: LM_STUDIO_HOST was set like LXC_IP=192.168.x.x — include only the address.\n"
+            "  Fix .env:  LM_STUDIO_HOST=192.168.x.x\n"
+            "  Then reload Khoj env:  docker compose up -d khoj"
+        )
+    host = u.hostname
+    if not host:
+        raise RuntimeError(
+            "OPENAI_BASE_URL has no hostname (check LM_STUDIO_HOST in .env — use the LM Studio "
+            "machine IP or DNS, not an empty line or placeholder)."
+        )
 
 
 def _models_url(openai_base: str) -> str:
@@ -95,6 +118,12 @@ def main() -> int:
     base_url = os.environ.get("OPENAI_BASE_URL", "").strip()
     if not base_url:
         print("error: OPENAI_BASE_URL is not set", file=sys.stderr)
+        return 2
+
+    try:
+        _validate_openai_base_url(base_url)
+    except RuntimeError as e:
+        print(f"error: {e}", file=sys.stderr)
         return 2
 
     api_key = os.environ.get("OPENAI_API_KEY", "") or ""
