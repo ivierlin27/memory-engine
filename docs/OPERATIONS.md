@@ -26,6 +26,7 @@ Optional internal: `mcp.dev-path.org` → LXC_IP:8765 (Phase 8).
 Open `https://khoj.dev-path.org`.
 
 - **Chat model**: OpenAI-compatible, base `http://<ALIENWARE>:1234/v1`, key `lm-studio`, model name exactly as in LM Studio.
+- **Sync chat models from LM Studio**: On the LXC, from `/opt/memory-engine`, run `./scripts/sync-khoj-chat-models.sh` (or `docker compose exec -T khoj python3 /app/scripts/khoj_sync_lmstudio_chat_models.py`). This reads `GET /v1/models` using `OPENAI_BASE_URL` / `OPENAI_API_KEY` from compose and upserts Khoj **ChatModel** rows under an **Ai Model API** named `LM Studio (synced)`. Optional: `--dry-run`, `--prune` (remove Khoj models no longer listed). Requires the compose bind-mount on `scripts/khoj_sync_lmstudio_chat_models.py`.
 - **Embeddings**: base `http://<ALIENWARE>:1235/v1`, model `nomic-embed-text`.
 - **Search**: Custom URL `https://search.dev-path.org/search?q={query}&format=json`
 - **Vault**: rsync Mac vault → LXC `/opt/memory-engine/obsidian_vault/`, in Khoj add `/app/vault`, Sync.
