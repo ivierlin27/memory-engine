@@ -3,9 +3,13 @@
 Sync Khoj ChatModel rows from LM Studio (or any OpenAI-compatible server)
 GET /v1/models, using the same OPENAI_* env vars as the Khoj container.
 
-Run inside the Khoj container (compose mounts this file to /app/scripts/):
+Run via the helper (pipes this file into the container — no bind-mount):
 
-  docker compose exec -T khoj python3 /app/scripts/khoj_sync_lmstudio_chat_models.py
+  ./scripts/sync-khoj-chat-models.sh
+
+Or manually:
+
+  docker compose exec -T khoj env PYTHONPATH=/app/src python3 - < scripts/khoj_sync_lmstudio_chat_models.py
 
 Options:
   --dry-run    Print actions without writing to the database

@@ -72,8 +72,6 @@ services:
     volumes:
       - ./obsidian_vault:/app/vault:ro
       - khoj_data:/app/.khoj
-      # Sync LM Studio → Khoj ChatModel list: scripts/sync-khoj-chat-models.sh
-      - ./scripts/khoj_sync_lmstudio_chat_models.py:/app/scripts/khoj_sync_lmstudio_chat_models.py:ro
     depends_on:
       postgres:
         condition: service_healthy
