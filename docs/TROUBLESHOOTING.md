@@ -37,6 +37,16 @@ Use `docker volume ls | grep n8n` to get the exact volume name. Removing `n8n_da
 
 Khoj expects **`POSTGRES_HOST`** / **`POSTGRES_DB`** etc., not only `DATABASE_URL`. See current `docker-compose.yml` `khoj` service.
 
+## Khoj Django admin returns **400** at `/server/admin`
+
+Django returns **400 Bad Request** when the **`Host`** header is not in **`ALLOWED_HOSTS`** (`DisallowedHost`). Khoj builds that list from **`KHOJ_ALLOWED_DOMAIN`** (defaulting to **`KHOJ_DOMAIN`**, which defaults to **`khoj.dev`** if unset).
+
+**Fix:** Set **`DOMAIN`** in `.env` (apex only, e.g. `dev-path.org`). This stack passes **`KHOJ_DOMAIN`** / **`KHOJ_ALLOWED_DOMAIN`** from `DOMAIN` in `docker-compose.yml`, so **`https://khoj.${DOMAIN}/server/admin/`** works.
+
+**Raw IP (`http://192.168.x.x:42110`):** `Host` is the IP, which does not match `*.dev-path.org`. Either browse admin via **`https://khoj.<your-domain>`**, or temporarily set **`KHOJ_ALLOWED_DOMAIN`** to that IP in compose (Khoj allows one primary value here), then `docker compose up -d khoj`.
+
+Use a **trailing slash**: `/server/admin/` (either usually redirects, but be consistent).
+
 ## Khoj / sync script: `Name or service not known` or URL contains `LXC_IP=`
 
 `OPENAI_BASE_URL` is built from **`LM_STUDIO_HOST`** in `.env`. If you set `LM_STUDIO_HOST=LXC_IP=192.168.1.45` (copy-paste from docs), the URL becomes invalid. Use **only** the address:
