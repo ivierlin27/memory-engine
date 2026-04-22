@@ -9,11 +9,15 @@ RUN git clone --depth 1 --branch "${MEM0_GIT_REF}" https://github.com/mem0ai/mem
 
 FROM python:3.12-slim
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends libpq5 \
+# libpq runtime for psycopg/psycopg2 wheels (pgvector store)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=prepare /src/server/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir "psycopg[binary]>=3.2" psycopg2-binary
+# Install DB drivers before mem0 so pgvector imports succeed
+RUN pip install --no-cache-dir "psycopg[binary]>=3.2" "psycopg2-binary>=2.9.9" \
+    && pip install --no-cache-dir -r requirements.txt
 COPY --from=prepare /src/server .
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8000

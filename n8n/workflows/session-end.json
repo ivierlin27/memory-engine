@@ -1,4 +1,5 @@
 {
+  "id": "a1b0a1b0-0001-4000-8000-000000000002",
   "name": "ME · Session end",
   "nodes": [
     {
@@ -42,7 +43,7 @@
       "typeVersion": 2.6,
       "position": [640, 300],
       "credentials": {
-        "postgres": {"id": "REPLACE_PG_CREDENTIAL", "name": "Memory Postgres"}
+        "postgres": {"id": "a1c0feed-0001-4000-8000-00000000c001", "name": "Memory Postgres"}
       }
     },
     {

@@ -143,8 +143,9 @@ services:
       N8N_BASIC_AUTH_PASSWORD: ${ADMIN_PASSWORD}
       SEARXNG_URL: ${SEARXNG_URL}
       # Used by imported workflows ($env.*) — see n8n/workflows/README.md
-      MEMORY_ENGINE_MEM0_URL: http://mem0:8000
-      MEMORY_ENGINE_PLANKA_URL: https://planka.${DOMAIN}
+      # Mem0: keep internal Docker DNS (default). Planka: public HTTPS URL via NPM (default); override if hairpin NAT/DNS fails.
+      MEMORY_ENGINE_MEM0_URL: ${MEMORY_ENGINE_MEM0_URL:-http://mem0:8000}
+      MEMORY_ENGINE_PLANKA_URL: ${MEMORY_ENGINE_PLANKA_URL:-https://planka.${DOMAIN}}
       MEMORY_ENGINE_USER_ID: ${MEMORY_ENGINE_USER_ID:-memory-engine}
       PLANKA_API_TOKEN: ${PLANKA_API_TOKEN}
       PLANKA_INBOX_LIST_ID: ${PLANKA_INBOX_LIST_ID}
