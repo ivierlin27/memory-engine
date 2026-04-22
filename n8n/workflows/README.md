@@ -37,8 +37,8 @@ These fields are unrelated to **`MEMORY_ENGINE_PLANKA_URL`** (that env is for **
 | **Title** | Any label, e.g. `Memory Engine · card moved` |
 | **URL** | **`https://n8n.<DOMAIN>/webhook/planka-card-moved`** (same **`DOMAIN`** as compose / NPM; production webhook path — workflow must be **published/active**) |
 | **Access token** | Leave empty unless you add webhook auth on the n8n side (default workflow webhook has **authentication: none**) |
-| **Events** | Prefer events that fire when a **card moves** between lists if Planka exposes them; otherwise **All** is OK but chatty |
-| **Excluded events** | Optional; trim noise if needed |
+| **Events** | Prefer **`cardUpdate`** only for this workflow — Planka has no `cardMoved`; moving a column/list usually updates the card (**`cardUpdate`**). Start there; if executions never fire on drag, broaden (e.g. **`All`** once, inspect payload, then narrow again). |
+| **Excluded events** | Leave **`None`** if you selected only **`cardUpdate`**. If you instead choose **All**, use exclusions to drop noise unrelated to lane changes, e.g. **`attachment*`**, **`comment*`**, **`notification*`**, **`backgroundImage*`**, **`task*`**, **`label*`**, **`customField*`**, **`webhook*`**, **`user*`**, **`notificationService*`**. Tune after you see traffic. |
 
 Then: keep **ME · Planka card moved** active, ensure **`PLANKA_REJECTED_LIST_ID`** matches the UUID of your real “Rejected” column/list, and after the first real delivery open **Extract IDs** and align fields if **`destListId`** / **`cardId`** never match Planka’s JSON.
 
