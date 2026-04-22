@@ -93,15 +93,44 @@
     },
     {
       "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const inboxId = $('PG inbox insert').first().json.inbox_id;\nconst j = items[0].json;\nconst item = j.item ?? j.body?.item ?? j.data?.item ?? j;\nconst planka_card_id =\n  item && item.id != null && item.id !== '' ? String(item.id) : '';\nreturn [{ json: { inbox_id: inboxId, planka_card_id } }];"
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-111111111108",
+      "name": "Parse Planka card id",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1240, 300]
+    },
+    {
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "UPDATE inbox\nSET planka_card_id = $1::text\nWHERE id = $2::uuid\n  AND NULLIF(trim($1::text), '') IS NOT NULL\nRETURNING id::text AS inbox_id, planka_card_id",
+        "options": {
+          "queryReplacement": "={{ [ $json.planka_card_id, $json.inbox_id ] }}"
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-111111111109",
+      "name": "PG link Planka id",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1400, 300],
+      "credentials": {
+        "postgres": {"id": "a1c0feed-0001-4000-8000-00000000c001", "name": "Memory Postgres"}
+      }
+    },
+    {
+      "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ ({ ok: true, inbox_id: $('PG inbox insert').first().json.inbox_id }) }}",
+        "responseBody": "={{ ({ ok: true, inbox_id: $('PG inbox insert').first().json.inbox_id, planka_card_id: $('Parse Planka card id').first().json.planka_card_id || null }) }}",
         "options": {}
       },
       "id": "a1b2c3d4-e5f6-7890-abcd-111111111107",
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1300, 300]
+      "position": [1560, 300]
     }
   ],
   "connections": {
@@ -109,7 +138,9 @@
     "Normalize": {"main": [[{"node": "Mem0 add", "type": "main", "index": 0}]]},
     "Mem0 add": {"main": [[{"node": "PG inbox insert", "type": "main", "index": 0}]]},
     "PG inbox insert": {"main": [[{"node": "Planka card", "type": "main", "index": 0}]]},
-    "Planka card": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+    "Planka card": {"main": [[{"node": "Parse Planka card id", "type": "main", "index": 0}]]},
+    "Parse Planka card id": {"main": [[{"node": "PG link Planka id", "type": "main", "index": 0}]]},
+    "PG link Planka id": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
   },
   "settings": {"executionOrder": "v1"},
   "meta": {"templateCredsSetupCompleted": false},
