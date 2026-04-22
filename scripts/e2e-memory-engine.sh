@@ -100,11 +100,17 @@ if [[ "${SKIP_DIGEST:-}" == "1" ]]; then
 elif [[ "${RUN_DIGEST:-}" == "1" ]] && [[ -n "${N8N_SSH:-}" ]]; then
   say "=== ME · Weekly digest — n8n execute on ${N8N_SSH} (needs LM Studio + optional ntfy) ==="
   # shellcheck disable=SC2029
-  ssh -o BatchMode=yes -o ConnectTimeout=15 "${N8N_SSH}" \
-    'docker exec memory-n8n n8n execute --id=a1b0a1b0-0001-4000-8000-000000000004' \
-    || say "Digest execute failed (LM Studio down or workflow error — check n8n Executions)." >&2
+  out="$(ssh -o BatchMode=yes -o ConnectTimeout=15 "${N8N_SSH}" \
+    'docker exec memory-n8n n8n execute --id=a1b0a1b0-0001-4000-8000-000000000004' 2>&1)" || true
+  say "${out}"
+  if printf '%s' "${out}" | grep -q '5679 is already in use'; then
+    say "NOTE: \`n8n execute\` cannot bind its task broker while the main n8n server is running in the same container." >&2
+    say "Test digest from the UI (Open workflow → Execute workflow / wait for cron) or run execute on a stopped instance." >&2
+  elif printf '%s' "${out}" | grep -qi error; then
+    say "Digest execute reported an error — check LM Studio and n8n Executions." >&2
+  fi
 else
-  say "=== ME · Weekly digest — SKIP (timer-driven; set RUN_DIGEST=1 and N8N_SSH=user@lxc to run \`n8n execute\` on the Docker host) ==="
+  say "=== ME · Weekly digest — SKIP (cron-driven; optional RUN_DIGEST=1 + N8N_SSH tries CLI — often conflicts with running server; prefer manual Execute in UI) ==="
 fi
 
 say ""

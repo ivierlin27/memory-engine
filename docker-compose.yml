@@ -157,6 +157,8 @@ services:
       # Self-hosted: avoid Rudder/telemetry connection errors when outbound 443 to n8n is blocked
       N8N_DIAGNOSTICS_ENABLED: "false"
       N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      # ME workflows use $env.MEMORY_ENGINE_* / PLANKA_* / LM_* in expressions (HTTP Request URLs, etc.)
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
     volumes:
       - n8n_data:/home/node/.n8n
       - ./inbox:/inbox

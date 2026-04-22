@@ -82,7 +82,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({ type: 'project', name: ($('Normalize').first().json.title || 'Ingest').toString().slice(0, 1024), description: ($('Normalize').first().json.memory_text || $('Normalize').first().json.raw_input || '').toString().slice(0, 8000) }) }}",
+        "jsonBody": "={{ ({ type: 'project', position: 65535, name: ($('Normalize').first().json.title || 'Ingest').toString().slice(0, 1024), description: ($('Normalize').first().json.memory_text || $('Normalize').first().json.raw_input || '').toString().slice(0, 8000) }) }}",
         "options": {}
       },
       "id": "a1b2c3d4-e5f6-7890-abcd-111111111106",

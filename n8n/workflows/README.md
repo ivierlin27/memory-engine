@@ -70,3 +70,13 @@ See **MEMORY_ENGINE_BUILD_PLAN_v2** §7 (advanced branches: SearXNG, yt-dlp, loo
 ## Export after edits
 
 Use **Workflow → Download** or the API; commit updated JSON here.
+
+## Updating an existing workflow (avoid duplicated nodes)
+
+**Import from File…** while editing the same workflow can **merge** JSON and duplicate nodes. Prefer **one** of:
+
+1. **Replace on the server:** sync `n8n/workflows/*.json` to the LXC and apply canonical **`nodes`** / **`connections`** to **`workflow_entity`** + **`workflow_history`** for that workflow id (same approach as fixing a bad import), then restart n8n and **`n8n publish:workflow --id=…`**.
+2. **Clean import:** duplicate/delete the broken workflow in the UI, then import the file as a **new** workflow (new id), then deactivate the old one and fix webhook URLs — more manual.
+3. **Manual:** select stray nodes in the canvas and delete them, then save.
+
+Requires **`N8N_BLOCK_ENV_ACCESS_IN_NODE=false`** in **`docker-compose.yml`** so **`$env.*`** resolves in HTTP Request URLs and Code nodes (default n8n 2.x blocks env access in expressions).
