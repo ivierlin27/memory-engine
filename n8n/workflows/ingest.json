@@ -1,0 +1,116 @@
+{
+  "name": "ME · Ingest",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ingest",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-111111111101",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "a1b2c3d4-e5f6-7890-abcd-111111111102"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const root = items[0].json;\nconst body = root.body !== undefined ? root.body : root;\nconst type = String(body.type || 'text').toLowerCase();\nconst content = String(body.content ?? body.text ?? '');\nconst source = String(body.source || 'ingest');\nconst title = (content ? content : 'Ingest').slice(0, 200);\nreturn [{\n  json: {\n    item_type: type,\n    raw_input: content,\n    title,\n    summary: null,\n    memory_text: content.slice(0, 32000),\n    status: 'pending',\n    source,\n  },\n}];"
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-111111111103",
+      "name": "Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.MEMORY_ENGINE_MEM0_URL }}/memories",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{"name": "Content-Type", "value": "application/json"}]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ messages: [{ role: 'user', content: $json.memory_text }], user_id: $env.MEMORY_ENGINE_USER_ID || 'memory-engine', metadata: { source: $json.source, title: $json.title } }) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-111111111104",
+      "name": "Mem0 add",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300],
+      "continueOnFail": true,
+      "notesInFlow": true,
+      "notes": "Uses Normalize fields even though this runs after Mem0 chain start — continues on fail."
+    },
+    {
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "INSERT INTO inbox (item_type, raw_input, title, summary, status)\nVALUES ($1::text, $2::text, $3::text, $4::text, $5::text)\nRETURNING id::text AS inbox_id",
+        "options": {
+          "queryReplacement": "={{ [$('Normalize').first().json.item_type, $('Normalize').first().json.raw_input, $('Normalize').first().json.title, $('Normalize').first().json.summary || '', $('Normalize').first().json.status] }}"
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-111111111105",
+      "name": "PG inbox insert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [860, 300],
+      "credentials": {
+        "postgres": {"id": "REPLACE_PG_CREDENTIAL", "name": "Memory Postgres"}
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.MEMORY_ENGINE_PLANKA_URL }}/api/lists/{{ $env.PLANKA_INBOX_LIST_ID }}/cards",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Authorization", "value": "={{ 'Bearer ' + $env.PLANKA_API_TOKEN }}"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ type: 'project', name: ($('Normalize').first().json.title || 'Ingest').toString().slice(0, 1024), description: ($('Normalize').first().json.memory_text || $('Normalize').first().json.raw_input || '').toString().slice(0, 8000) }) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-111111111106",
+      "name": "Planka card",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ ({ ok: true, inbox_id: $('PG inbox insert').first().json.inbox_id }) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-111111111107",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1300, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {"main": [[{"node": "Normalize", "type": "main", "index": 0}]]},
+    "Normalize": {"main": [[{"node": "Mem0 add", "type": "main", "index": 0}]]},
+    "Mem0 add": {"main": [[{"node": "PG inbox insert", "type": "main", "index": 0}]]},
+    "PG inbox insert": {"main": [[{"node": "Planka card", "type": "main", "index": 0}]]},
+    "Planka card": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "meta": {"templateCredsSetupCompleted": false},
+  "pinData": {}
+}

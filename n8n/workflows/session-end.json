@@ -1,0 +1,69 @@
+{
+  "name": "ME · Session end",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "session-end",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b1b2c3d4-e5f6-7890-abcd-211111111101",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "b1b2c3d4-e5f6-7890-abcd-211111111102"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const root = items[0].json;\nconst body = root.body !== undefined ? root.body : root;\nconst source = String(body.source || 'session');\nconst raw_summary = typeof body.raw_summary === 'string' ? body.raw_summary : JSON.stringify(body.raw_summary ?? body.summary ?? '');\nconst projects_touched = Array.isArray(body.projects_touched) ? body.projects_touched : [];\nconst new_concepts = Array.isArray(body.new_concepts) ? body.new_concepts : [];\nconst decisions_made = Array.isArray(body.decisions_made) ? body.decisions_made : [];\nconst open_questions = Array.isArray(body.open_questions) ? body.open_questions : [];\nreturn [{ json: { source, raw_summary, projects_touched, new_concepts, decisions_made, open_questions } }];"
+      },
+      "id": "b1b2c3d4-e5f6-7890-abcd-211111111103",
+      "name": "Parse body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "INSERT INTO sessions (source, raw_summary, projects_touched, new_concepts, decisions_made, open_questions)\nVALUES ($1::text, $2::text, $3::text[], $4::text[], $5::text[], $6::text[])\nRETURNING id::text AS session_id",
+        "options": {
+          "queryReplacement": "={{ [ $json.source, $json.raw_summary, $json.projects_touched, $json.new_concepts, $json.decisions_made, $json.open_questions ] }}"
+        }
+      },
+      "id": "b1b2c3d4-e5f6-7890-abcd-211111111104",
+      "name": "PG insert session",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [640, 300],
+      "credentials": {
+        "postgres": {"id": "REPLACE_PG_CREDENTIAL", "name": "Memory Postgres"}
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ ({ ok: true, session_id: $json.session_id }) }}",
+        "options": {}
+      },
+      "id": "b1b2c3d4-e5f6-7890-abcd-211111111107",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [860, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {"main": [[{"node": "Parse body", "type": "main", "index": 0}]]},
+    "Parse body": {"main": [[{"node": "PG insert session", "type": "main", "index": 0}]]},
+    "PG insert session": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "meta": {"templateCredsSetupCompleted": false},
+  "pinData": {}
+}

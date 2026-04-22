@@ -1,0 +1,112 @@
+{
+  "name": "ME · Weekly digest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 20 * * 0"
+            }
+          ]
+        }
+      },
+      "id": "d1b2c3d4-e5f6-7890-abcd-411111111101",
+      "name": "Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "SELECT string_agg(raw_summary, E'\\n---\\n') AS summaries\nFROM sessions\nWHERE created_at > NOW() - INTERVAL '7 days'",
+        "options": {}
+      },
+      "id": "d1b2c3d4-e5f6-7890-abcd-411111111102",
+      "name": "PG sessions 7d",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [420, 300],
+      "credentials": {
+        "postgres": {"id": "REPLACE_PG_CREDENTIAL", "name": "Memory Postgres"}
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const summaries = items[0].json.summaries || '(no sessions)';\nconst prompt = `Summarize themes and suggested next actions in short markdown. Sessions (7d):\\n${summaries}`;\nreturn [{ json: { prompt } }];"
+      },
+      "id": "d1b2c3d4-e5f6-7890-abcd-411111111103",
+      "name": "Build prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'http://' + $env.LM_STUDIO_HOST + ':' + $env.LM_STUDIO_PORT + '/v1/chat/completions' }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Content-Type", "value": "application/json"},
+            {"name": "Authorization", "value": "=Bearer lm-studio"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ model: $env.LLM_MODEL || 'qwen2.5-32b-instruct', messages: [{ role: 'user', content: $json.prompt }], temperature: 0.4 }) }}",
+        "options": {"timeout": 120000}
+      },
+      "id": "d1b2c3d4-e5f6-7890-abcd-411111111104",
+      "name": "LM Studio chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const r = items[0].json;\nconst text = r.choices?.[0]?.message?.content || JSON.stringify(r).slice(0, 4000);\nconst topic = $env.NTFY_TOPIC;\nreturn [{ json: { text, topic } }];"
+      },
+      "id": "d1b2c3d4-e5f6-7890-abcd-411111111105",
+      "name": "Extract reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://ntfy.sh/' + $env.NTFY_TOPIC }}",
+        "authentication": "none",
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ $json.text }}",
+        "options": {}
+      },
+      "id": "d1b2c3d4-e5f6-7890-abcd-411111111106",
+      "name": "ntfy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 300],
+      "continueOnFail": true,
+      "notes": "Requires NTFY_TOPIC in .env. Disable or replace if unused."
+    }
+  ],
+  "connections": {
+    "Schedule": {"main": [[{"node": "PG sessions 7d", "type": "main", "index": 0}]]},
+    "PG sessions 7d": {"main": [[{"node": "Build prompt", "type": "main", "index": 0}]]},
+    "Build prompt": {"main": [[{"node": "LM Studio chat", "type": "main", "index": 0}]]},
+    "LM Studio chat": {"main": [[{"node": "Extract reply", "type": "main", "index": 0}]]},
+    "Extract reply": {"main": [[{"node": "ntfy", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "meta": {"templateCredsSetupCompleted": false},
+  "pinData": {}
+}

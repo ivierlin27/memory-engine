@@ -1,0 +1,130 @@
+{
+  "name": "ME · Planka card moved",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "planka-card-moved",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c1b2c3d4-e5f6-7890-abcd-311111111101",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "c1b2c3d4-e5f6-7890-abcd-311111111102"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "/**\n * Planka payload shapes differ by version. Log one execution and adjust.\n * Tries common locations for destination list id and card id.\n */\nconst r = items[0].json;\nconst body = r.body ?? r;\nconst item = body.item ?? body.card ?? body.data?.item ?? body;\nconst destListId = String(\n  item.listId ?? item.list?.id ?? body.listId ?? body.toListId ?? body.newListId ?? ''\n);\nconst cardId = String(item.id ?? item.cardId ?? body.cardId ?? '');\nconst event = String(body.action ?? body.type ?? body.event ?? '');\nreturn [{ json: { destListId, cardId, event, _raw_sample: JSON.stringify(body).slice(0, 4000) } }];"
+      },
+      "id": "c1b2c3d4-e5f6-7890-abcd-311111111103",
+      "name": "Extract IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300],
+      "notesInFlow": true,
+      "notes": "After first Planka webhook, open this node and map fields to match your Planka JSON."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json.destListId }}",
+              "rightValue": "={{ $env.PLANKA_REJECTED_LIST_ID }}",
+              "operator": {"type": "string", "operation": "equals"}
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c1b2c3d4-e5f6-7890-abcd-311111111104",
+      "name": "To Rejected?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "INSERT INTO rejection_log (item, reason, reversible)\nVALUES ($1::text, $2::text, true)",
+        "options": {
+          "queryReplacement": "={{ [ 'planka-card:' + $json.cardId, 'moved-to-rejected', ] }}"
+        }
+      },
+      "id": "c1b2c3d4-e5f6-7890-abcd-311111111105",
+      "name": "PG rejection_log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [860, 200],
+      "credentials": {
+        "postgres": {"id": "REPLACE_PG_CREDENTIAL", "name": "Memory Postgres"}
+      }
+    },
+    {
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "UPDATE inbox SET status = 'rejected' WHERE planka_card_id = $1::text",
+        "options": {
+          "queryReplacement": "={{ [ $json.cardId ] }}"
+        }
+      },
+      "id": "c1b2c3d4-e5f6-7890-abcd-311111111106",
+      "name": "PG inbox reject",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1060, 200],
+      "credentials": {
+        "postgres": {"id": "REPLACE_PG_CREDENTIAL", "name": "Memory Postgres"}
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ ({ ok: true, handled: 'rejected' }) }}",
+        "options": {}
+      },
+      "id": "c1b2c3d4-e5f6-7890-abcd-311111111107",
+      "name": "Respond rejected",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1280, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ ({ ok: true, handled: 'noop', destListId: $json.destListId }) }}",
+        "options": {}
+      },
+      "id": "c1b2c3d4-e5f6-7890-abcd-311111111108",
+      "name": "Respond other",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [860, 420]
+    }
+  ],
+  "connections": {
+    "Webhook": {"main": [[{"node": "Extract IDs", "type": "main", "index": 0}]]},
+    "Extract IDs": {"main": [[{"node": "To Rejected?", "type": "main", "index": 0}]]},
+    "To Rejected?": {
+      "main": [
+        [{"node": "PG rejection_log", "type": "main", "index": 0}],
+        [{"node": "Respond other", "type": "main", "index": 0}]
+      ]
+    },
+    "PG rejection_log": {"main": [[{"node": "PG inbox reject", "type": "main", "index": 0}]]},
+    "PG inbox reject": {"main": [[{"node": "Respond rejected", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "meta": {"templateCredsSetupCompleted": false},
+  "pinData": {}
+}

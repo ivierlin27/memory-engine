@@ -13,11 +13,13 @@ Replace example IPs with your [PREREQS.md](PREREQS.md) values.
 
 Websocket support ON, SSL Let’s Encrypt for each:
 
-| Domain | Forward | Port |
-|--------|---------|------|
-| khoj.dev-path.org | LXC_IP | 42110 |
-| n8n.dev-path.org | LXC_IP | 5678 |
-| planka.dev-path.org | LXC_IP | 3000 |
+
+| Domain              | Forward | Port  |
+| ------------------- | ------- | ----- |
+| khoj.dev-path.org   | LXC_IP  | 42110 |
+| n8n.dev-path.org    | LXC_IP  | 5678  |
+| planka.dev-path.org | LXC_IP  | 3000  |
+
 
 Optional internal: `mcp.dev-path.org` → LXC_IP:8765 (Phase 8).
 
@@ -50,7 +52,9 @@ Put token and Inbox/Rejected list IDs into `.env`, rsync, `docker compose up -d`
 
 `https://n8n.dev-path.org` — build four workflows (ingest, session-end, planka-card-moved, weekly digest) per **MEMORY_ENGINE_BUILD_PLAN_v2** §7.1–7.4.
 
-**Note:** `Execute Command` nodes (yt-dlp, pdftotext) require those binaries on the **n8n** host path. Easiest path: extend `n8nio/n8n` with a small Dockerfile on the LXC, or replace with HTTP-sidecar services later.
+**Importable baseline:** JSON lives in [`n8n/workflows/`](../n8n/workflows/README.md). Import each file (**Workflows → Import from File**), attach the **Memory Postgres** credential (`postgres` host, database **`memory`**), ensure `.env` has Planka/Mem0/LM Studio vars and **`docker compose up -d n8n`**, then activate workflows.
+
+**Note:** `Execute Command` nodes (yt-dlp, pdftotext) require those binaries on the **n8n** host path. Easiest path: extend `n8nio/n8n` with a small Dockerfile on the LXC, or replace with HTTP-sidecar services later. The shipped JSON omits those nodes; add them from the build plan if needed.
 
 Test webhook:
 
