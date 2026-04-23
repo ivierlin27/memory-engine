@@ -20,7 +20,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const root = items[0].json;\nconst body = root.body !== undefined ? root.body : root;\nconst type = String(body.type || 'text').toLowerCase();\nconst content = String(body.content ?? body.text ?? '');\nconst source = String(body.source || 'ingest');\nconst title = (content ? content : 'Ingest').slice(0, 200);\nreturn [{\n  json: {\n    item_type: type,\n    raw_input: content,\n    title,\n    summary: null,\n    memory_text: content.slice(0, 32000),\n    status: 'pending',\n    source,\n  },\n}];"
+        "jsCode": "const root = items[0].json;\nconst body = root.body !== undefined ? root.body : root;\nconst type = String(body.type || 'text').toLowerCase();\nconst content = String(body.content ?? body.text ?? '');\nconst source = String(body.source || 'ingest');\nconst title = (content ? content : 'Ingest').slice(0, 200);\nconst principal = String(body.principal || $env.MEMORY_ENGINE_USER_ID || 'memory-engine');\nconst command_or_api = body.command_or_api ? String(body.command_or_api) : 'webhook:ingest';\nconst git_ref = body.git_ref ? String(body.git_ref) : '';\nconst artifact_url = body.artifact_url ? String(body.artifact_url) : '';\nconst metadata = typeof body.metadata === 'object' && body.metadata !== null ? body.metadata : {};\nreturn [{\n  json: {\n    item_type: type,\n    raw_input: content,\n    principal,\n    title,\n    summary: null,\n    memory_text: content.slice(0, 32000),\n    status: 'pending',\n    source,\n    command_or_api,\n    git_ref,\n    artifact_url,\n    metadata,\n  },\n}];"
       },
       "id": "a1b2c3d4-e5f6-7890-abcd-111111111103",
       "name": "Normalize",
@@ -38,7 +38,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({ messages: [{ role: 'user', content: $json.memory_text }], user_id: $env.MEMORY_ENGINE_USER_ID || 'memory-engine', metadata: { source: $json.source, title: $json.title } }) }}",
+        "jsonBody": "={{ ({ messages: [{ role: 'user', content: $json.memory_text }], user_id: $json.principal || $env.MEMORY_ENGINE_USER_ID || 'memory-engine', metadata: { source: $json.source, title: $json.title, principal: $json.principal, command_or_api: $json.command_or_api, git_ref: $json.git_ref, artifact_url: $json.artifact_url, extra: $json.metadata || {} } }) }}",
         "options": {}
       },
       "id": "a1b2c3d4-e5f6-7890-abcd-111111111104",
@@ -54,9 +54,9 @@
       "parameters": {
         "resource": "database",
         "operation": "executeQuery",
-        "query": "INSERT INTO inbox (item_type, raw_input, title, summary, status)\nVALUES ($1::text, $2::text, $3::text, $4::text, $5::text)\nRETURNING id::text AS inbox_id",
+        "query": "INSERT INTO inbox (item_type, raw_input, principal, title, summary, status, command_or_api, git_ref, artifact_url, metadata)\nVALUES ($1::text, $2::text, $3::text, $4::text, $5::text, $6::text, $7::text, NULLIF($8::text, ''), NULLIF($9::text, ''), $10::jsonb)\nRETURNING id::text AS inbox_id",
         "options": {
-          "queryReplacement": "={{ [$('Normalize').first().json.item_type, $('Normalize').first().json.raw_input, $('Normalize').first().json.title, $('Normalize').first().json.summary || '', $('Normalize').first().json.status] }}"
+          "queryReplacement": "={{ [$('Normalize').first().json.item_type, $('Normalize').first().json.raw_input, $('Normalize').first().json.principal, $('Normalize').first().json.title, $('Normalize').first().json.summary || '', $('Normalize').first().json.status, $('Normalize').first().json.command_or_api, $('Normalize').first().json.git_ref || '', $('Normalize').first().json.artifact_url || '', JSON.stringify($('Normalize').first().json.metadata || {})] }}"
         }
       },
       "id": "a1b2c3d4-e5f6-7890-abcd-111111111105",

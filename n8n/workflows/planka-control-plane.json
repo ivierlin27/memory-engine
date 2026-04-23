@@ -1,0 +1,267 @@
+{
+  "id": "a1b0a1b0-0001-4000-8000-000000000005",
+  "name": "ME · Planka control plane",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "planka-control-plane",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e1b2c3d4-e5f6-7890-abcd-511111111101",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "e1b2c3d4-e5f6-7890-abcd-511111111102"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const root = items[0].json;\nconst body = root.body ?? root;\nconst item = body.item ?? body.card ?? body.data?.item ?? body;\nconst labels = item.labels ?? body.labels ?? [];\nreturn [{ json: {\n  cardId: String(item.id ?? body.cardId ?? ''),\n  name: String(item.name ?? body.name ?? 'Untitled card'),\n  description: String(item.description ?? body.description ?? ''),\n  destListId: String(item.listId ?? item.list?.id ?? body.listId ?? body.toListId ?? body.newListId ?? ''),\n  labels,\n  raw: body,\n} }];"
+      },
+      "id": "e1b2c3d4-e5f6-7890-abcd-511111111103",
+      "name": "Extract card",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const listId = $json.destListId;\nlet action = 'noop';\nlet dispatchUrl = '';\nif (listId && listId === $env.PLANKA_PLAN_READY_LIST_ID) {\n  action = 'author-plan';\n  dispatchUrl = $env.AUTHOR_AGENT_PLAN_WEBHOOK_URL || '';\n} else if (listId && listId === $env.PLANKA_APPROVED_LIST_ID) {\n  action = 'author-execute';\n  dispatchUrl = $env.AUTHOR_AGENT_EXECUTE_WEBHOOK_URL || '';\n} else if (listId && listId === $env.PLANKA_AUTHOR_REVIEW_LIST_ID) {\n  action = 'review-agent';\n  dispatchUrl = $env.REVIEW_AGENT_WEBHOOK_URL || '';\n} else if (listId && listId === $env.PLANKA_NEEDS_HUMAN_LIST_ID) {\n  action = 'needs-human-review';\n  dispatchUrl = $env.HUMAN_REVIEW_WEBHOOK_URL || '';\n}\nreturn [{ json: { ...$json, action, dispatchUrl, ntfyTopic: $env.NTFY_TOPIC || '' } }];"
+      },
+      "id": "e1b2c3d4-e5f6-7890-abcd-511111111104",
+      "name": "Route action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "dispatch-check",
+              "leftValue": "={{ $json.dispatchUrl }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e1b2c3d4-e5f6-7890-abcd-511111111105",
+      "name": "Has dispatch URL?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.dispatchUrl }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ action: $json.action, cardId: $json.cardId, name: $json.name, description: $json.description, destListId: $json.destListId, labels: $json.labels, raw: $json.raw }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "e1b2c3d4-e5f6-7890-abcd-511111111106",
+      "name": "Dispatch webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 220],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "human-check",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "needs-human-review",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "topic-check",
+              "leftValue": "={{ $json.ntfyTopic }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e1b2c3d4-e5f6-7890-abcd-511111111107",
+      "name": "Human review + ntfy?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1080, 420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://ntfy.sh/' + $json.ntfyTopic }}",
+        "authentication": "none",
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ 'Human review required for card ' + $json.name + ' (' + $json.cardId + ')' }}",
+        "options": {}
+      },
+      "id": "e1b2c3d4-e5f6-7890-abcd-511111111108",
+      "name": "ntfy human review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 420],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ ({ ok: true, action: $json.action, dispatchUrl: $json.dispatchUrl || null }) }}",
+        "options": {}
+      },
+      "id": "e1b2c3d4-e5f6-7890-abcd-511111111109",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1300, 220]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract card": {
+      "main": [
+        [
+          {
+            "node": "Route action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route action": {
+      "main": [
+        [
+          {
+            "node": "Has dispatch URL?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has dispatch URL?": {
+      "main": [
+        [
+          {
+            "node": "Dispatch webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Human review + ntfy?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human review + ntfy?": {
+      "main": [
+        [
+          {
+            "node": "ntfy human review",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ntfy human review": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {}
+}

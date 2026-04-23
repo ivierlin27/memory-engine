@@ -20,7 +20,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const root = items[0].json;\nconst body = root.body !== undefined ? root.body : root;\nconst source = String(body.source || 'session');\nconst raw_summary = typeof body.raw_summary === 'string' ? body.raw_summary : JSON.stringify(body.raw_summary ?? body.summary ?? '');\nconst projects_touched = Array.isArray(body.projects_touched) ? body.projects_touched : [];\nconst new_concepts = Array.isArray(body.new_concepts) ? body.new_concepts : [];\nconst decisions_made = Array.isArray(body.decisions_made) ? body.decisions_made : [];\nconst open_questions = Array.isArray(body.open_questions) ? body.open_questions : [];\nreturn [{ json: { source, raw_summary, projects_touched, new_concepts, decisions_made, open_questions } }];"
+        "jsCode": "const root = items[0].json;\nconst body = root.body !== undefined ? root.body : root;\nconst source = String(body.source || 'session');\nconst principal = String(body.principal || $env.MEMORY_ENGINE_USER_ID || 'memory-engine');\nconst raw_summary = typeof body.raw_summary === 'string' ? body.raw_summary : JSON.stringify(body.raw_summary ?? body.summary ?? '');\nconst projects_touched = Array.isArray(body.projects_touched) ? body.projects_touched : [];\nconst new_concepts = Array.isArray(body.new_concepts) ? body.new_concepts : [];\nconst decisions_made = Array.isArray(body.decisions_made) ? body.decisions_made : [];\nconst open_questions = Array.isArray(body.open_questions) ? body.open_questions : [];\nconst command_or_api = body.command_or_api ? String(body.command_or_api) : 'webhook:session-end';\nconst git_ref = body.git_ref ? String(body.git_ref) : '';\nconst artifact_url = body.artifact_url ? String(body.artifact_url) : '';\nconst metadata = typeof body.metadata === 'object' && body.metadata !== null ? body.metadata : {};\nreturn [{ json: { source, principal, raw_summary, projects_touched, new_concepts, decisions_made, open_questions, command_or_api, git_ref, artifact_url, metadata } }];"
       },
       "id": "b1b2c3d4-e5f6-7890-abcd-211111111103",
       "name": "Parse body",
@@ -32,9 +32,9 @@
       "parameters": {
         "resource": "database",
         "operation": "executeQuery",
-        "query": "INSERT INTO sessions (source, raw_summary, projects_touched, new_concepts, decisions_made, open_questions)\nVALUES ($1::text, $2::text, $3::text[], $4::text[], $5::text[], $6::text[])\nRETURNING id::text AS session_id",
+        "query": "INSERT INTO sessions (source, principal, raw_summary, projects_touched, new_concepts, decisions_made, open_questions, command_or_api, git_ref, artifact_url, metadata)\nVALUES ($1::text, $2::text, $3::text, $4::text[], $5::text[], $6::text[], $7::text[], $8::text, NULLIF($9::text, ''), NULLIF($10::text, ''), $11::jsonb)\nRETURNING id::text AS session_id",
         "options": {
-          "queryReplacement": "={{ [ $json.source, $json.raw_summary, $json.projects_touched, $json.new_concepts, $json.decisions_made, $json.open_questions ] }}"
+          "queryReplacement": "={{ [ $json.source, $json.principal, $json.raw_summary, $json.projects_touched, $json.new_concepts, $json.decisions_made, $json.open_questions, $json.command_or_api, $json.git_ref || '', $json.artifact_url || '', JSON.stringify($json.metadata || {}) ] }}"
         }
       },
       "id": "b1b2c3d4-e5f6-7890-abcd-211111111104",

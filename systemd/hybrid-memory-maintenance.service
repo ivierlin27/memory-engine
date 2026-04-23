@@ -1,0 +1,9 @@
+[Unit]
+Description=Memory Engine hybrid wiki compiler and contradiction scan
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/memory-engine
+ExecStart=/usr/bin/env bash /opt/memory-engine/scripts/run-hybrid-maintenance.sh

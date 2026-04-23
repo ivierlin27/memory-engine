@@ -7,7 +7,20 @@ Workflow JSON files in this folder can be **imported** into n8n (**Workflows** m
 | `ingest.json` | `/webhook/ingest` |
 | `session-end.json` | `/webhook/session-end` |
 | `planka-card-moved.json` | `/webhook/planka-card-moved` |
+| `planka-control-plane.json` | `/webhook/planka-control-plane` |
 | `weekly-digest.json` | *(Schedule Trigger — no webhook)* |
+
+## Hybrid maintenance scripts
+
+The derived wiki compiler and contradiction scan are currently versioned as
+repo scripts rather than imported workflows:
+
+- `scripts/wiki_compile.py`
+- `scripts/scan_contradictions.py`
+- `scripts/run-hybrid-maintenance.sh`
+
+This keeps the core logic in git and lets you trigger it from cron, systemd,
+or n8n later without rebuilding the logic in the canvas.
 
 ## Prerequisites
 
@@ -25,8 +38,15 @@ Workflow JSON files in this folder can be **imported** into n8n (**Workflows** m
 
 4. **`.env`** must include at least:
    - `PLANKA_API_TOKEN`, `PLANKA_INBOX_LIST_ID`, `PLANKA_REJECTED_LIST_ID`
+   - optional control-plane list ids / webhooks:
+     `PLANKA_PLAN_READY_LIST_ID`, `PLANKA_APPROVED_LIST_ID`,
+     `PLANKA_AUTHOR_REVIEW_LIST_ID`, `PLANKA_NEEDS_HUMAN_LIST_ID`,
+     `AUTHOR_AGENT_PLAN_WEBHOOK_URL`, `AUTHOR_AGENT_EXECUTE_WEBHOOK_URL`,
+     `REVIEW_AGENT_WEBHOOK_URL`, `HUMAN_REVIEW_WEBHOOK_URL`
    - `LM_STUDIO_HOST`, `LM_STUDIO_PORT`, `LLM_MODEL` (weekly digest)
    - `NTFY_TOPIC` (optional; digest **ntfy** step fails softly if empty)
+   - optional gateway / compiler vars: `MEMORY_ENGINE_LLM_BASE_URL`,
+     `MEMORY_ENGINE_STRONG_MODEL`, `PLANKA_REVIEW_LIST_ID`
 
 ### Planka → n8n (Settings → Webhooks)
 
@@ -61,7 +81,9 @@ After pulling this repo, **re-import** **`ingest.json`** (or sync the workflow i
 - **Ingest** — POST JSON `{ "type", "content", "source" }` → Mem0 (`/memories`) → **`inbox` row** → **Planka Inbox card** → stores **`planka_card_id`** on **`inbox`** when the API returns **`item.id`** (needed for rejection sync).
 - **Session end** — POST JSON with `source`, `raw_summary`, and optional arrays matching `sessions` columns → insert into `sessions`.
 - **Planka card moved** — POST from Planka webhook; if destination list id equals **`PLANKA_REJECTED_LIST_ID`**, inserts `rejection_log` and sets `inbox.status = rejected` where `planka_card_id` matches. **Edit the Code node** `Extract IDs` after your first real payload so `destListId` / `cardId` match Planka’s JSON.
+- **Planka control plane** — POST from a second Planka webhook; routes card moves to author/review/human webhooks based on destination list id and can send `ntfy` for human review.
 - **Weekly digest** — Sunday 20:00 (workflow timezone / server TZ) → summarize last 7 days of `sessions.raw_summary` via LM Studio → **ntfy**.
+- **Hybrid scripts** — `run-hybrid-maintenance.sh` compiles `obsidian_vault/compiled/` and writes contradiction findings/open tensions from the same structured sources.
 
 ## Full node graphs
 

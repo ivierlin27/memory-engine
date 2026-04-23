@@ -16,6 +16,33 @@ Self-hosted AI memory stack (PostgreSQL + pgvector, Qdrant, Khoj, Mem0, n8n, Pla
 
 Full sequence: [docs/DEPLOY.md](docs/DEPLOY.md). Post-deploy UI steps: [docs/OPERATIONS.md](docs/OPERATIONS.md). If n8n/Planka or Khoj DB errors: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
+## Hybrid memory layer
+
+The stack now supports a DB-first + generated-wiki pattern:
+
+- conventions and provenance rules: [docs/HYBRID_MEMORY.md](docs/HYBRID_MEMORY.md)
+- compiler script: `scripts/wiki_compile.py`
+- contradiction scan: `scripts/scan_contradictions.py`
+- convenience wrapper: `scripts/run-hybrid-maintenance.sh`
+- compiled output root: `obsidian_vault/compiled/`
+- SQL migration for existing deployments: `postgres/migrations/20260423_hybrid_memory.sql`
+
+For an existing LXC deployment, sync the repo and run:
+
+```bash
+chmod +x scripts/apply-sql-migrations.sh scripts/run-hybrid-maintenance.sh
+./scripts/apply-sql-migrations.sh
+./scripts/run-hybrid-maintenance.sh
+```
+
+Both scripts read `.env` and support a routed OpenAI-compatible gateway via
+`MEMORY_ENGINE_LLM_BASE_URL` + `MEMORY_ENGINE_STRONG_MODEL`.
+
+For hands-off scheduling on the LXC, install:
+
+- `systemd/hybrid-memory-maintenance.service`
+- `systemd/hybrid-memory-maintenance.timer`
+
 ## Image pins
 
 | Service   | Image tag              |

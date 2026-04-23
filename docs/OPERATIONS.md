@@ -52,7 +52,7 @@ Put token and Inbox/Rejected list IDs into `.env`, rsync, `docker compose up -d`
 
 `https://n8n.dev-path.org` — build four workflows (ingest, session-end, planka-card-moved, weekly digest) per **MEMORY_ENGINE_BUILD_PLAN_v2** §7.1–7.4.
 
-**Importable baseline:** JSON lives in [`n8n/workflows/`](../n8n/workflows/README.md). Import each file (**Workflows → Import from File**), attach the **Memory Postgres** credential (`postgres` host, database **`memory`**), ensure `.env` has Planka/Mem0/LM Studio vars and **`docker compose up -d n8n`**, then activate workflows.
+**Importable baseline:** JSON lives in `[n8n/workflows/](../n8n/workflows/README.md)`. Import each file (**Workflows → Import from File**), attach the **Memory Postgres** credential (`postgres` host, database `**memory`**), ensure `.env` has Planka/Mem0/LM Studio vars and `**docker compose up -d n8n**`, then activate workflows.
 
 **Note:** `Execute Command` nodes (yt-dlp, pdftotext) require those binaries on the **n8n** host path. Easiest path: extend `n8nio/n8n` with a small Dockerfile on the LXC, or replace with HTTP-sidecar services later. The shipped JSON omits those nodes; add them from the build plan if needed.
 

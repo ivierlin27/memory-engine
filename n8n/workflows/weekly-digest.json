@@ -49,7 +49,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'http://' + $env.LM_STUDIO_HOST + ':' + $env.LM_STUDIO_PORT + '/v1/chat/completions' }}",
+        "url": "={{ ($env.MEMORY_ENGINE_LLM_BASE_URL || ('http://' + $env.LM_STUDIO_HOST + ':' + $env.LM_STUDIO_PORT + '/v1')) + '/chat/completions' }}",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
@@ -60,7 +60,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({ model: $env.LLM_MODEL || 'qwen2.5-32b-instruct', messages: [{ role: 'user', content: $json.prompt }], temperature: 0.4 }) }}",
+        "jsonBody": "={{ ({ model: $env.MEMORY_ENGINE_FAST_MODEL || $env.LLM_MODEL || 'qwen2.5-32b-instruct', messages: [{ role: 'user', content: $json.prompt }], temperature: 0.4 }) }}",
         "options": {"timeout": 120000}
       },
       "id": "d1b2c3d4-e5f6-7890-abcd-411111111104",
