@@ -8,6 +8,7 @@ Workflow JSON files in this folder can be **imported** into n8n (**Workflows** m
 | `session-end.json` | `/webhook/session-end` |
 | `planka-card-moved.json` | `/webhook/planka-card-moved` |
 | `planka-control-plane.json` | `/webhook/planka-control-plane` |
+| `forgejo-pr-merged.json` | `/webhook/forgejo-pr-merged` |
 | `weekly-digest.json` | *(Schedule Trigger — no webhook)* |
 
 ## Hybrid maintenance scripts
@@ -41,8 +42,9 @@ or n8n later without rebuilding the logic in the canvas.
    - optional control-plane list ids / webhooks:
      `PLANKA_PLAN_READY_LIST_ID`, `PLANKA_APPROVED_LIST_ID`,
      `PLANKA_AUTHOR_REVIEW_LIST_ID`, `PLANKA_NEEDS_HUMAN_LIST_ID`,
-     `AUTHOR_AGENT_PLAN_WEBHOOK_URL`, `AUTHOR_AGENT_EXECUTE_WEBHOOK_URL`,
-     `REVIEW_AGENT_WEBHOOK_URL`, `HUMAN_REVIEW_WEBHOOK_URL`
+     `PLANKA_MERGED_LIST_ID`, `PLANKA_DONE_LIST_ID`
+   - agent dispatcher:
+     `AGENT_DISPATCHER_URL`, `AGENT_DISPATCH_TOKEN`
    - `LM_STUDIO_HOST`, `LM_STUDIO_PORT`, `LLM_MODEL` (weekly digest)
    - `NTFY_TOPIC` (optional; digest **ntfy** step fails softly if empty)
    - optional gateway / compiler vars: `MEMORY_ENGINE_LLM_BASE_URL`,
@@ -81,7 +83,8 @@ After pulling this repo, **re-import** **`ingest.json`** (or sync the workflow i
 - **Ingest** — POST JSON `{ "type", "content", "source" }` → Mem0 (`/memories`) → **`inbox` row** → **Planka Inbox card** → stores **`planka_card_id`** on **`inbox`** when the API returns **`item.id`** (needed for rejection sync).
 - **Session end** — POST JSON with `source`, `raw_summary`, and optional arrays matching `sessions` columns → insert into `sessions`.
 - **Planka card moved** — POST from Planka webhook; if destination list id equals **`PLANKA_REJECTED_LIST_ID`**, inserts `rejection_log` and sets `inbox.status = rejected` where `planka_card_id` matches. **Edit the Code node** `Extract IDs` after your first real payload so `destListId` / `cardId` match Planka’s JSON.
-- **Planka control plane** — POST from a second Planka webhook; routes card moves to author/review/human webhooks based on destination list id and can send `ntfy` for human review.
+- **Planka control plane** — POST from a second Planka webhook; routes card moves to the Alienware agent event dispatcher based on destination list id and can send `ntfy` for human review.
+- **Forgejo PR merged** — POST from a Forgejo pull request webhook; forwards merge events to the Alienware agent event dispatcher so the related Planka card can move to `Done` or back to `Approved To Execute`.
 - **Weekly digest** — Sunday 20:00 (workflow timezone / server TZ) → summarize last 7 days of `sessions.raw_summary` via LM Studio → **ntfy**.
 - **Hybrid scripts** — `run-hybrid-maintenance.sh` compiles `obsidian_vault/compiled/` and writes contradiction findings/open tensions from the same structured sources.
 

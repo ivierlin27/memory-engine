@@ -31,7 +31,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const listId = $json.destListId;\nlet action = 'noop';\nlet dispatchUrl = '';\nif (listId && listId === $env.PLANKA_PLAN_READY_LIST_ID) {\n  action = 'author-plan';\n  dispatchUrl = $env.AUTHOR_AGENT_PLAN_WEBHOOK_URL || '';\n} else if (listId && listId === $env.PLANKA_APPROVED_LIST_ID) {\n  action = 'author-execute';\n  dispatchUrl = $env.AUTHOR_AGENT_EXECUTE_WEBHOOK_URL || '';\n} else if (listId && listId === $env.PLANKA_AUTHOR_REVIEW_LIST_ID) {\n  action = 'review-agent';\n  dispatchUrl = $env.REVIEW_AGENT_WEBHOOK_URL || '';\n} else if (listId && listId === $env.PLANKA_NEEDS_HUMAN_LIST_ID) {\n  action = 'needs-human-review';\n  dispatchUrl = $env.HUMAN_REVIEW_WEBHOOK_URL || '';\n}\nreturn [{ json: { ...$json, action, dispatchUrl, ntfyTopic: $env.NTFY_TOPIC || '' } }];"
+        "jsCode": "const listId = $json.destListId;\nlet action = 'noop';\nlet listName = '';\nconst dispatcherBase = ($env.AGENT_DISPATCHER_URL || '').replace(/\\/$/, '');\nlet dispatchUrl = '';\nif (listId && listId === $env.PLANKA_PLAN_READY_LIST_ID) {\n  action = 'author-plan';\n  listName = 'Plan Ready';\n} else if (listId && listId === $env.PLANKA_APPROVED_LIST_ID) {\n  action = 'author-execute';\n  listName = 'Approved To Execute';\n} else if (listId && listId === $env.PLANKA_AUTHOR_REVIEW_LIST_ID) {\n  action = 'review-agent';\n  listName = 'Author Review Ready';\n} else if (listId && listId === $env.PLANKA_NEEDS_HUMAN_LIST_ID) {\n  action = 'needs-human-review';\n  listName = 'Needs Human Review';\n}\nif (dispatcherBase && action !== 'noop') {\n  dispatchUrl = dispatcherBase + '/planka-control-plane';\n}\nreturn [{ json: { ...$json, action, listName, dispatchUrl, ntfyTopic: $env.NTFY_TOPIC || '', dispatchToken: $env.AGENT_DISPATCH_TOKEN || '' } }];"
       },
       "id": "e1b2c3d4-e5f6-7890-abcd-511111111104",
       "name": "Route action",
@@ -79,12 +79,16 @@
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "X-Agent-Dispatch-Token",
+              "value": "={{ $json.dispatchToken }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({ action: $json.action, cardId: $json.cardId, name: $json.name, description: $json.description, destListId: $json.destListId, labels: $json.labels, raw: $json.raw }) }}",
+        "jsonBody": "={{ ({ action: $json.action, cardId: $json.cardId, name: $json.name, description: $json.description, destListId: $json.destListId, listName: $json.listName, labels: $json.labels, raw: $json.raw }) }}",
         "options": {
           "timeout": 120000
         }
