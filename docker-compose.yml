@@ -71,7 +71,7 @@ services:
       POSTGRES_DB: memory
       POSTGRES_USER: memory
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      OPENAI_API_KEY: lm-studio
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-lm-studio}
       OPENAI_BASE_URL: ${MEMORY_ENGINE_LLM_BASE_URL:-http://${LM_STUDIO_HOST}:${LM_STUDIO_PORT}/v1}
     volumes:
       - ./obsidian_vault:/app/vault:ro
