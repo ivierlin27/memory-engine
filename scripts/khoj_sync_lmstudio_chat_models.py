@@ -23,6 +23,7 @@ Env (inherited from docker-compose):
 Optional:
   KHOJ_LMSTUDIO_API_NAME       Default: "LM Studio (synced)"
   KHOJ_SYNC_MAX_PROMPT_SIZE    Default: 32768
+  KHOJ_SYNC_MODEL_ALLOWLIST    Optional comma-separated model ids to sync
 
 Note: --prune only deletes ChatModel rows that are still unreferenced (no agent,
 server default slot, or user setting points at them).
@@ -138,6 +139,16 @@ def main() -> int:
 
     if not model_ids:
         print("warning: /v1/models returned no models — nothing to sync", file=sys.stderr)
+
+    allowlist = {
+        item.strip()
+        for item in os.environ.get("KHOJ_SYNC_MODEL_ALLOWLIST", "").split(",")
+        if item.strip()
+    }
+    if allowlist:
+        model_ids = [model_id for model_id in model_ids if model_id in allowlist]
+        if not model_ids:
+            print("warning: KHOJ_SYNC_MODEL_ALLOWLIST filtered out all models — nothing to sync", file=sys.stderr)
 
     api_name = os.environ.get("KHOJ_LMSTUDIO_API_NAME", "LM Studio (synced)")
     max_prompt = int(os.environ.get("KHOJ_SYNC_MAX_PROMPT_SIZE", "32768"))
